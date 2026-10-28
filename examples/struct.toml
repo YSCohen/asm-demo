@@ -1,0 +1,68 @@
+# Slides 54-59 of the procedures lecture: a struct is laid out like an
+# array, and is passed by putting its address in an argument register.
+title = "Passing Structs"
+
+c = """
+typedef struct Person {
+   long age;
+   long height;
+} Person;
+long age_height_plus_one(Person *person) {
+   return person->age + 1 + person->height;
+}
+int main(void) {
+   Person alice = { .age = 25, .height = 10 };
+   printf("%ld\\n", age_height_plus_one(&alice));
+   return 0;
+}
+"""
+
+# Preambles / epilogues are left out, as in the lecture.
+asm = """
+main:
+    subq    $16, %rsp               # c:9
+    movq    $25, 0(%rsp)            # c:9
+    movq    $10, 8(%rsp)            # c:9
+    movq    %rsp, %rdi              # c:10
+    call    age_height_plus_one     # c:10
+    addq    $16, %rsp
+    ret
+age_height_plus_one:
+    movq    0(%rdi), %rax           # c:6
+    addq    $1, %rax                # c:6
+    addq    8(%rdi), %rax           # c:6
+    ret                             # c:6
+"""
+
+panels = ["c", "asm", "state"]
+
+regs = { rsp = 0x1010 }                    # so that after `subq $16, %rsp` it is 0x1000
+regs_shown = ["rsp:hex", "rdi:hex", "rax"]
+
+[[mem]]
+addr = 0x1000
+size = 8
+[[mem]]
+addr = 0x1008
+size = 8
+
+[steps.1]
+note = "Make room for alice on the stack"
+[steps.2]
+note = "alice.age is at offset 0"
+[steps.3]
+note = "alice.height is at offset 8"
+[steps.4]
+note = "Put the struct's address in the first argument register"
+[steps.5]
+note = "Call age_height_plus_one(&alice)"
+[steps.6]
+note = "person->age is at 0(%rdi)"
+[steps.7]
+note = "+ 1"
+[steps.8]
+note = "person->height is at 8(%rdi): 25 + 1 + 10 = 36"
+[steps.9]
+note = "Return to main with the result in %rax (printf call left out)"
+[steps.10]
+note = "Free alice's stack space"

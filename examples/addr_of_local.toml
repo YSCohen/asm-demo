@@ -1,0 +1,64 @@
+# Slides 21-27 of the lecture: taking the address of a local (&x) forces it
+# into a stack slot, and rdi gets that slot's address.
+title = "Example: when a local variable needs a real address"
+
+c = """
+void use(int *p);
+int f(void) {
+    int x = 5;
+    use(&x);
+    return x;
+}
+"""
+
+asm = """
+f:
+    subq    $16, %rsp
+    movl    $5, 12(%rsp)    # c:3
+    movq    %rsp, %rdi      # c:4
+    addq    $12, %rdi       # c:4
+    call    use             # c:4
+    movl    12(%rsp), %eax  # c:5
+    addq    $16, %rsp
+    ret
+"""
+
+panels = ["mem", "asm"]
+mem_title = "Stack memory"
+
+regs = { rsp = 0x110 }                     # so that after `subq $16, %rsp` it is 0x100
+regs_shown = ["rsp:hex", "rdi:hex", "rax"]
+pointers = ["rsp", "rdi"]                  # drawn as tags next to the cell they point at
+
+# Listed top to bottom as drawn (stack grows down, so high addresses first).
+[[mem]]
+addr = 0x10C
+size = 4
+label = "x"
+[[mem]]
+addr = 0x108
+size = 4
+label = "unused"
+[[mem]]
+addr = 0x104
+size = 4
+label = "unused"
+[[mem]]
+addr = 0x100
+size = 4
+label = "unused"
+
+[steps.1]
+note = "Make room for a 16-byte stack frame: rsp = 0x110 − 16 = 0x100"
+[steps.2]
+note = "movl $5, 12(%rsp) means “put the value 5 in memory location rsp + 12”"
+[steps.3]
+note = "rdi = 0x100"
+[steps.4]
+note = "rdi = 0x10C, so use() gets the address of x as its first argument"
+[steps.5]
+note = "call use (stepped over here: we only care what f does)"
+[steps.6]
+note = "Read x back from its stack slot into the return register"
+[steps.7]
+note = "Free the stack frame before returning"

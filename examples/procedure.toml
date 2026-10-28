@@ -1,0 +1,105 @@
+# Slides 7-42 of the procedures lecture: main calls add1, which runs a full
+# preamble / body / epilogue. `call add1` is followed because add1 is a label
+# below; the trace ends at main's own `ret`.
+title = "Calling add1"
+
+c = """
+long add1(long x) {
+    long y = 1;
+    return x + y;
+}
+int main() {
+    add1(41);
+    return 0;
+}
+"""
+
+asm = """
+main:
+    movq    $41, %rdi
+    call    add1
+    movl    $0, %eax
+    ret
+add1:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    subq    $16, %rsp
+    movq    %rdi, -16(%rbp)
+    movq    $1, -8(%rbp)
+    movq    -16(%rbp), %rax
+    addq    -8(%rbp), %rax
+    leave
+    ret
+"""
+
+panels = ["asm", "regs", "mem"]
+mem_title = "Stack memory"
+code_base = 0x401080            # so addresses look like a real executable's
+show_initial = true
+
+regs = { rsp = 0x1020, rbp = 0x2000 }
+regs_shown = ["rip:hex", "rsp:hex", "rbp:hex", "rdi", "rax"]
+pointers = ["rsp", "rbp"]
+
+[[mem]]
+addr = 0x1020
+size = 8
+label = "main's data"
+[[mem]]
+addr = 0x1018
+size = 8
+label = "return addr"
+hex = true
+[[mem]]
+addr = 0x1010
+size = 8
+label = "main's rbp"
+hex = true
+[[mem]]
+addr = 0x1008
+size = 8
+label = "y"
+[[mem]]
+addr = 0x1000
+size = 8
+label = "x"
+
+[steps.0]
+title = "Before the call: caller prepares the argument"
+note = "%rip holds the address of the next instruction to execute"
+[steps.1]
+title = "Before the call: caller prepares the argument"
+note = "The first argument goes in %rdi"
+[steps.2]
+title = "call add1"
+note = "call pushes the return address (the instruction after it), then jumps to add1"
+[steps.3]
+title = "Function starts: save the caller's rbp"
+note = "pushq %rbp saves main's frame base on the stack"
+[steps.4]
+title = "Function starts: reset the rbp"
+note = "add1's frame is anchored wherever the stack pointer is now"
+[steps.5]
+title = "Function body: make space for locals"
+note = "Extend the stack downward by 16 bytes"
+[steps.6]
+title = "Function body"
+note = "Store x at rbp − 16"
+[steps.7]
+title = "Function body"
+note = "Store y = 1 at rbp − 8"
+[steps.8]
+title = "Function body"
+note = "Load x into the return register"
+[steps.9]
+title = "Function body"
+note = "%rax = x + y"
+[steps.10]
+title = "Epilogue: undo preamble"
+note = "leave = movq %rbp, %rsp; popq %rbp (old values stay in memory, but they're now garbage)"
+[steps.11]
+title = "Epilogue: return"
+note = "ret is like “popq %rip”: back to the instruction in main"
+[steps.12]
+title = "main returns 0"
+note = "Back to where we started: %rsp and %rbp are main's again"

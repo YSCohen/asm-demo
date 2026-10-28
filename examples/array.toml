@@ -1,0 +1,56 @@
+# Slides 46-52 of the procedures lecture: a[i] hides an address calculation.
+# For int arrays, each element is 4 bytes, so a[i] is at a + 4*i.
+title = "Array example: trace one concrete case"
+
+c = """
+int get(int *a, long i) {
+    return a[i];
+}
+"""
+
+asm = """
+get:
+    movq    %rsi, %rax      # c:2
+    addq    %rax, %rax      # c:2
+    addq    %rax, %rax      # c:2
+    addq    %rdi, %rax      # c:2
+    movl    (%rax), %eax    # c:2
+    ret
+"""
+
+panels = ["c", "asm", "state"]
+show_initial = true
+
+# array a begins at 0x1000, i = 3
+regs = { rdi = 0x1000, rsi = 3 }
+regs_shown = ["rdi:hex", "rsi", "rax:hex"]
+
+[[mem]]
+addr = 0x1000
+size = 4
+value = 10
+[[mem]]
+addr = 0x1004
+size = 4
+value = 20
+[[mem]]
+addr = 0x1008
+size = 4
+value = 30
+[[mem]]
+addr = 0x100C
+size = 4
+value = 40
+
+[steps.0]
+note = "Start: %rdi = 0x1000 (array a), %rsi = 3 (i)"
+[steps.1]
+note = "%rax = i = 3"
+[steps.2]
+note = "%rax = 2i = 6"
+[steps.3]
+note = "%rax = 4i = 12 (0xC)"
+[steps.4]
+note = "%rax = a + 4i = 0x100C"
+[steps.5]
+note = "Dereference 0x1000 + i * 4, i.e. a[3] = 40 (0x28)"

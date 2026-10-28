@@ -1,0 +1,47 @@
+# Swap two longs through pointers.
+title = "Swap"
+
+c = """
+void swap(long *xp, long *yp) {
+    long t0 = *xp;
+    long t1 = *yp;
+    *xp = t1;
+    *yp = t0;
+}
+"""
+
+# "# c:N" links an instruction to line N of the C code above.
+asm = """
+swap:
+    movq    (%rdi), %rax    # c:2
+    movq    (%rsi), %rdx    # c:3
+    movq    %rdx, (%rdi)    # c:4
+    movq    %rax, (%rsi)    # c:5
+    ret
+"""
+
+panels = ["c", "asm", "state"] # left-to-right; "state" = registers over memory
+
+# Starting state. Registers not listed here show as "?" until written.
+regs = { rdi = 0x100, rsi = 0x120 }
+regs_shown = ["rdi:hex", "rsi:hex", "rax", "rdx"]
+
+[[mem]]
+addr = 0x100
+size = 8
+value = 123
+
+[[mem]]
+addr = 0x120
+size = 8
+value = 456
+
+# Per-step slide titles/notes, keyed by step number (1 = first instruction).
+[steps.1]
+title = "Swap step 1: load *xp into %rax"
+[steps.2]
+title = "Swap step 2: load *yp into %rdx"
+[steps.3]
+title = "Swap step 3: write t1 into *xp"
+[steps.4]
+title = "Swap step 4: write t0 into *yp"
